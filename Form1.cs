@@ -111,6 +111,7 @@ namespace SIP_Notifier
             textBoxRegState.Text = "Connecting";
             // register callbacks
             CallManager.CallStateRefresh += new DCallStateRefresh(CallManager_CallStateRefresh);
+            // ICallProxyInterface.CallStateChanged += new DCallStateChanged(CallManager_OnCallStateChanged);
             CallManager.IncomingCallNotification += new DIncomingCallNotification(CallManager_IncomingCallNotification);
 
             pjsipRegistrar.Instance.AccountStateChanged += new Sipek.Common.DAccountStateChanged(Instance_AccountStateChanged);
@@ -170,6 +171,15 @@ namespace SIP_Notifier
                 OnStateUpdate(sessionId);
         }
 
+        /*void CallManager_OnCallStateChanged(int callId, ESessionState callState, string info)
+        {
+            // MUST synchronize threads
+            if (InvokeRequired)
+                this.BeginInvoke(new DCallStateChanged(OnCallStateChanged), new object[] { callId, callState, info });
+            else
+                OnCallStateChanged(callId, callState, info);
+        }*/
+
         void CallManager_IncomingCallNotification(int sessionId, string number, string info)
         {
             // MUST synchronize threads
@@ -221,6 +231,24 @@ namespace SIP_Notifier
             textBoxCallState.Text = text;
         }
 
+        /* private void OnCallStateChanged(int callId, ESessionState callState, string info)
+        {
+            IStateMachine state = CallManager.CallList[callId];
+
+            number = state.CallingNumber;
+
+            textBoxCallState.Text = number;
+                        
+            string contact = contacts.lookup(number);
+            if (contact != "")
+                number = contact + " (" + number + ")";
+
+            notifyIcon1.BalloonTipTitle = "Eingehender Anruf";
+            notifyIcon1.BalloonTipText = "Von: " + number + "\r\n" + info;
+            notifyIcon1.BalloonTipIcon = ToolTipIcon.Info;
+            notifyIcon1.ShowBalloonTip(30);
+        } */
+
         private void OnIncomingCall(int sessionId, string number, string info)
         {
             incall = CallManager.getCall(sessionId);
@@ -236,6 +264,13 @@ namespace SIP_Notifier
             notifyIcon1.BalloonTipText = "Von: " + number + "\r\n" + info;
             notifyIcon1.BalloonTipIcon = ToolTipIcon.Info;
             notifyIcon1.ShowBalloonTip(30);
+
+            /*
+            // Send Busy
+            ICallProxyInterface proxy = CallManager.StackProxy.createCallProxy();
+            proxy.serviceRequest((int)EServiceCodes.SC_CFB, "");
+            proxy.endCall();
+             */
         }
 
         #endregion
@@ -257,7 +292,7 @@ namespace SIP_Notifier
                 buttonSave.Enabled = false;
                 this.ShowInTaskbar = true;
                 this.Visible = true;
-                this.BringToFront();
+                //this.BringToFront();
             }
 
         }
@@ -299,6 +334,16 @@ namespace SIP_Notifier
         {
             notifyIcon1.Visible = false;
             base.OnClosing(e);
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                e.Cancel = true;
+                this.ShowInTaskbar = false;
+                this.Visible = false;
+            }
         }
 
         private void textBoxHostName_TextChanged(object sender, EventArgs e)
